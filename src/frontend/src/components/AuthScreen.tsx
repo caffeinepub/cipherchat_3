@@ -1,19 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
-import { toast } from "sonner";
-import type { backendInterface } from "../backend";
-import { sha256Hex } from "../utils/crypto";
-
-interface AuthScreenProps {
-  hasIdentity: boolean;
-  actor: backendInterface | null;
-  onLogin: () => void;
-  onRegistered: () => void;
-}
+import { Shield } from "lucide-react";
+import { motion } from "motion/react";
 
 function GoogleIcon() {
   return (
@@ -61,57 +47,11 @@ function AppleIcon() {
   );
 }
 
-export default function AuthScreen({
-  hasIdentity,
-  actor,
-  onLogin,
-  onRegistered,
-}: AuthScreenProps) {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+interface AuthScreenProps {
+  onLogin: () => void;
+}
 
-  const handleRegister = async () => {
-    if (!username.trim()) {
-      toast.error("Username is required");
-      return;
-    }
-    if (username.trim().length < 3) {
-      toast.error("Username must be at least 3 characters");
-      return;
-    }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    if (!actor) {
-      toast.error("Not connected. Please try again.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const passwordHash = await sha256Hex(password);
-      await actor.register({ username: username.trim(), passwordHash });
-      await actor.saveCallerUserProfile({
-        username: username.trim(),
-        isActive: true,
-      });
-      toast.success("Account created! Welcome to CipherChat.");
-      onRegistered();
-    } catch (err: any) {
-      toast.error(err?.message || "Registration failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function AuthScreen({ onLogin }: AuthScreenProps) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Background decoration */}
@@ -148,208 +88,38 @@ export default function AuthScreen({
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 shadow-panel">
-          {!hasIdentity ? (
-            <div className="flex flex-col gap-4">
-              <div className="text-center mb-2">
-                <h2 className="text-lg font-semibold text-foreground">
-                  Welcome Back
-                </h2>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Sign in to access your encrypted messages
-                </p>
-              </div>
-
-              {/* Google button */}
-              <button
-                type="button"
-                onClick={onLogin}
-                className="h-11 w-full rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                data-ocid="auth.primary_button"
-              >
-                <GoogleIcon />
-                Continue with Google
-              </button>
-
-              {/* Apple button */}
-              <button
-                type="button"
-                onClick={onLogin}
-                className="h-11 w-full rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-black text-white hover:bg-gray-900"
-                data-ocid="auth.secondary_button"
-              >
-                <AppleIcon />
-                Continue with Apple
-              </button>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">or</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              {/* Internet Identity button */}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={onLogin}
-                data-ocid="auth.toggle"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Continue with Internet Identity
-              </Button>
+          <div className="flex flex-col gap-4">
+            <div className="text-center mb-2">
+              <h2 className="text-lg font-semibold text-foreground">
+                Welcome to CipherChat
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Sign in to access your encrypted messages
+              </p>
             </div>
-          ) : (
-            <>
-              {/* Mode tabs */}
-              <div className="flex gap-1 p-1 bg-accent/50 rounded-lg mb-5">
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-                    mode === "login"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setMode("login")}
-                  data-ocid="auth.tab"
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-                    mode === "register"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setMode("register")}
-                  data-ocid="auth.tab"
-                >
-                  Register
-                </button>
-              </div>
 
-              <AnimatePresence mode="wait">
-                {mode === "login" ? (
-                  <motion.div
-                    key="login"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex flex-col gap-4"
-                  >
-                    <p className="text-muted-foreground text-sm text-center">
-                      Already registered? Your identity is connected. Click
-                      below to access your account.
-                    </p>
-                    <Button
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                      onClick={onLogin}
-                      data-ocid="auth.submit_button"
-                    >
-                      Access My Account
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      New user? Switch to Register tab
-                    </p>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="register"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex flex-col gap-4"
-                  >
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="username"
-                        className="text-foreground text-sm"
-                      >
-                        Username
-                      </Label>
-                      <Input
-                        id="username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Choose a username"
-                        className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                        autoComplete="username"
-                        data-ocid="auth.input"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="password"
-                        className="text-foreground text-sm"
-                      >
-                        Password
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Create a password"
-                          className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
-                          autoComplete="new-password"
-                          data-ocid="auth.input"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="confirmPassword"
-                        className="text-foreground text-sm"
-                      >
-                        Confirm Password
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Repeat your password"
-                        className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                        autoComplete="new-password"
-                        onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-                        data-ocid="auth.input"
-                      />
-                    </div>
-                    <Button
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                      onClick={handleRegister}
-                      disabled={loading}
-                      data-ocid="auth.submit_button"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Account...
-                        </>
-                      ) : (
-                        "Create Account"
-                      )}
-                    </Button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          )}
+            {/* Google button */}
+            <button
+              type="button"
+              onClick={onLogin}
+              className="h-11 w-full rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+              data-ocid="auth.primary_button"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
+
+            {/* Apple button */}
+            <button
+              type="button"
+              onClick={onLogin}
+              className="h-11 w-full rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors bg-black text-white hover:bg-gray-900"
+              data-ocid="auth.secondary_button"
+            >
+              <AppleIcon />
+              Continue with Apple
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">

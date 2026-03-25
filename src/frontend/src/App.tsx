@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { Menu, Shield } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserRole } from "./backend";
 import AdminView from "./components/AdminView";
 import AuthScreen from "./components/AuthScreen";
@@ -23,6 +23,8 @@ export default function App() {
     string | null
   >(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [autoRegistering, setAutoRegistering] = useState(false);
+  const autoRegAttempted = useRef(false);
 
   const roleQuery = useCallerRole();
   const profileQuery = useCallerProfile();
@@ -30,7 +32,42 @@ export default function App() {
   const isGuest = !identity || role === UserRole.guest || role === undefined;
   const isAdmin = role === UserRole.admin;
   const isLoading =
-    isInitializing || (!!identity && (isFetching || roleQuery.isLoading));
+    isInitializing ||
+    autoRegistering ||
+    (!!identity && (isFetching || roleQuery.isLoading));
+
+  // Auto-register new users when they authenticate via Internet Identity
+  useEffect(() => {
+    if (
+      !identity ||
+      !actor ||
+      role !== UserRole.guest ||
+      autoRegAttempted.current
+    ) {
+      return;
+    }
+    autoRegAttempted.current = true;
+    setAutoRegistering(true);
+
+    const principal = identity.getPrincipal().toString();
+    const shortId = principal.split("-")[0];
+
+    (async () => {
+      try {
+        // Try to register; if it fails the user is already registered
+        await actor.register({ username: shortId, passwordHash: "" });
+        await actor.saveCallerUserProfile({
+          username: shortId,
+          isActive: true,
+        });
+      } catch {
+        // Already registered — this is fine, just proceed
+      } finally {
+        await roleQuery.refetch();
+        setAutoRegistering(false);
+      }
+    })();
+  }, [identity, actor, role, roleQuery]);
 
   if (isLoading) {
     return (
@@ -53,12 +90,7 @@ export default function App() {
   if (isGuest || !identity) {
     return (
       <>
-        <AuthScreen
-          hasIdentity={!!identity}
-          actor={actor}
-          onLogin={login}
-          onRegistered={() => roleQuery.refetch()}
-        />
+        <AuthScreen onLogin={login} />
         <Toaster />
       </>
     );
