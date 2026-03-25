@@ -7,12 +7,13 @@ import AdminView from "./components/AdminView";
 import AuthScreen from "./components/AuthScreen";
 import ContactsView from "./components/ContactsView";
 import MessagesView from "./components/MessagesView";
+import ProfileView from "./components/ProfileView";
 import Sidebar from "./components/Sidebar";
 import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
-import { useCallerRole } from "./hooks/useQueries";
+import { useCallerProfile, useCallerRole } from "./hooks/useQueries";
 
-export type AppView = "messages" | "contacts" | "admin";
+export type AppView = "messages" | "contacts" | "admin" | "profile";
 
 export default function App() {
   const { identity, isInitializing, login, clear } = useInternetIdentity();
@@ -24,6 +25,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const roleQuery = useCallerRole();
+  const profileQuery = useCallerProfile();
   const role = roleQuery.data;
   const isGuest = !identity || role === UserRole.guest || role === undefined;
   const isAdmin = role === UserRole.admin;
@@ -89,6 +91,8 @@ export default function App() {
         onLogout={clear}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        myPrincipal={identity.getPrincipal()}
+        username={profileQuery.data?.username}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -160,6 +164,21 @@ export default function App() {
                 <AdminView
                   actor={actor!}
                   myPrincipal={identity.getPrincipal()}
+                />
+              </motion.div>
+            )}
+            {currentView === "profile" && (
+              <motion.div
+                key="profile"
+                className="h-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <ProfileView
+                  myPrincipal={identity.getPrincipal()}
+                  profile={profileQuery.data}
                 />
               </motion.div>
             )}

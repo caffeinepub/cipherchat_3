@@ -1,8 +1,10 @@
+import type { Principal } from "@icp-sdk/core/principal";
 import {
   Image,
   LogOut,
   MessageSquare,
   Shield,
+  User,
   UserCog,
   Users,
   X,
@@ -17,6 +19,8 @@ interface SidebarProps {
   onLogout: () => void;
   isOpen: boolean;
   onClose: () => void;
+  myPrincipal?: Principal;
+  username?: string;
 }
 
 const navItems: {
@@ -31,6 +35,7 @@ const navItems: {
     icon: <MessageSquare className="w-5 h-5" />,
   },
   { id: "contacts", label: "Contacts", icon: <Users className="w-5 h-5" /> },
+  { id: "profile", label: "Profile", icon: <User className="w-5 h-5" /> },
   {
     id: "admin",
     label: "User Management",
@@ -46,7 +51,16 @@ export default function Sidebar({
   onLogout,
   isOpen,
   onClose,
+  myPrincipal,
+  username,
 }: SidebarProps) {
+  const shortPrincipal = myPrincipal
+    ? (() => {
+        const s = myPrincipal.toString();
+        return `${s.slice(0, 5)}…${s.slice(-5)}`;
+      })()
+    : null;
+
   const content = (
     <div className="flex flex-col h-full w-64 bg-sidebar border-r border-sidebar-border">
       {/* Brand */}
@@ -110,6 +124,32 @@ export default function Sidebar({
           );
         })}
       </nav>
+
+      {/* Identity pill */}
+      {myPrincipal && (
+        <div className="px-4 py-3 border-t border-sidebar-border">
+          <button
+            type="button"
+            onClick={() => onViewChange("profile")}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-primary/5 border border-primary/15 hover:bg-primary/10 transition-colors group"
+            data-ocid="nav.profile.button"
+          >
+            <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              {username && (
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {username}
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground font-mono truncate">
+                {shortPrincipal}
+              </p>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Media info */}
       <div className="px-4 py-3 border-t border-sidebar-border">
